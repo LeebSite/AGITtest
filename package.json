@@ -14,5 +14,8 @@
     "assessment"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
 }
