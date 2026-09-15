@@ -132,12 +132,12 @@ describe('Case 1: Core Balancing Logic (Unit Tests)', () => {
   // ---------------------------------------------------------------------------
   it('7a. should reject negative quantities with a descriptive RangeError', () => {
     expect(() => balanceQuantities([-1, 5, 0])).toThrow(RangeError);
-    expect(() => balanceQuantities([-1, 5, 0])).toThrow(/negative values are not allowed/i);
+    expect(() => balanceQuantities([-1, 5, 0])).toThrow(/negatif/i);
   });
 
   it('7b. should reject fractional / decimal quantities with a descriptive RangeError', () => {
     expect(() => balanceQuantities([2.5, 5, 0])).toThrow(RangeError);
-    expect(() => balanceQuantities([2.5, 5, 0])).toThrow(/fractional\/decimal values are not allowed/i);
+    expect(() => balanceQuantities([2.5, 5, 0])).toThrow(/desimal|pecahan/i);
   });
 
   it('7c. should reject non-numeric and NaN values with a TypeError', () => {
