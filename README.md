@@ -31,7 +31,7 @@ Aplikasi web akan berjalan pada: `http://localhost:5173`.
 
 ---
 
-## 🧪 Pengujian (Automated Tests)
+## Pengujian (Automated Tests)
 
 ```bash
 # Jalankan Unit Test (Case 1 Balancer Logic)
@@ -46,7 +46,7 @@ npm run test:all
 
 ## Referensi Case 3 — Database & SQL
 
-📁 [`database/assessment.sql`](database/assessment.sql)
+[`database/assessment.sql`](database/assessment.sql)
 
 Untuk mengeksekusi langsung di PostgreSQL:
 ```bash
