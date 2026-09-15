@@ -7,7 +7,6 @@
 -- Task 1: Skema & Constraint (DDL)
 -- ==========================================
 
--- Tabel Header Planning
 CREATE TABLE IF NOT EXISTS plannings (
     planning_id     SERIAL PRIMARY KEY,
     request_code    VARCHAR(100) NOT NULL UNIQUE,
@@ -18,7 +17,6 @@ CREATE TABLE IF NOT EXISTS plannings (
     balanced_total  INTEGER      NOT NULL DEFAULT 0 CHECK (balanced_total >= 0)
 );
 
--- Tabel Detail Slot
 CREATE TABLE IF NOT EXISTS planning_slots (
     id                SERIAL PRIMARY KEY,
     planning_id       INTEGER      NOT NULL REFERENCES plannings(planning_id) ON DELETE CASCADE,
@@ -33,7 +31,7 @@ CREATE TABLE IF NOT EXISTS planning_slots (
 
 
 -- ==========================================
--- Task 2: Data Awal (Seed Data - 10 Kasus)
+-- Task 2: Data Awal (Seed Data)
 -- ==========================================
 
 DO $$
@@ -189,13 +187,15 @@ END $$;
 -- Task 3: Validasi Total Kuantitas
 -- ==========================================
 
--- Memvalidasi bahwa total kuantitas awal sama persis dengan total seimbang
 SELECT 
     p.planning_id,
     p.request_code,
     COALESCE(SUM(ps.original_quantity), 0) AS original_total,
     COALESCE(SUM(ps.balanced_quantity), 0) AS balanced_total,
-    (COALESCE(SUM(ps.original_quantity), 0) = COALESCE(SUM(ps.balanced_quantity), 0)) AS is_total_valid
+    (
+        COALESCE(SUM(ps.original_quantity), 0) = 
+        COALESCE(SUM(ps.balanced_quantity), 0)
+    ) AS is_total_valid
 FROM plannings p
 LEFT JOIN planning_slots ps ON p.planning_id = ps.planning_id
 GROUP BY p.planning_id, p.request_code
@@ -206,7 +206,6 @@ ORDER BY p.planning_id ASC;
 -- Task 4: Riwayat Planning
 -- ==========================================
 
--- Menampilkan riwayat transaksi planning, jumlah slot aktif, dan diurutkan terbaru
 SELECT 
     p.request_code,
     p.created_at,
@@ -225,7 +224,6 @@ ORDER BY p.created_at DESC;
 -- Task 5: Deteksi Anomali
 -- ==========================================
 
--- Mendeteksi ketidaksesuaian invariant atau anomali data
 WITH slot_summary AS (
     SELECT 
         planning_id,
@@ -269,7 +267,6 @@ WHERE
 -- Task 6: Top 3 Penyesuaian Terbesar
 -- ==========================================
 
--- Mengambil 3 slot dengan perubahan kuantitas absolut terbesar (tie-breaker: slot_order)
 SELECT 
     p.planning_id,
     p.request_code,
@@ -291,7 +288,6 @@ LIMIT 3;
 -- Task 7: Transaksi Atomik (Atomic Save)
 -- ==========================================
 
--- Contoh transaksi penyimpanan header dan detail secara atomik
 BEGIN;
 
 INSERT INTO plannings (request_code, candidate_token, status, original_total, balanced_total)
@@ -311,14 +307,12 @@ WHERE p.request_code = 'TX-SAMPLE-001'
 ON CONFLICT (planning_id, slot_order) DO NOTHING;
 
 COMMIT;
--- Jika terjadi error di salah satu query, jalankan ROLLBACK untuk membatalkan seluruh perubahan.
 
 
 -- ==========================================
 -- Task 8: Desain RebalanceRun & Versi Terakhir
 -- ==========================================
 
--- Proposal tabel audit multi-run
 CREATE TABLE IF NOT EXISTS rebalance_runs (
     run_id         SERIAL PRIMARY KEY,
     planning_id    INTEGER NOT NULL REFERENCES plannings(planning_id) ON DELETE CASCADE,
@@ -330,7 +324,6 @@ CREATE TABLE IF NOT EXISTS rebalance_runs (
     CONSTRAINT uq_rebalance_runs_version UNIQUE (planning_id, run_number)
 );
 
--- Data simulasi run
 INSERT INTO rebalance_runs (planning_id, run_number, balanced_total, processed_by, created_at)
 SELECT p.planning_id, 1, p.balanced_total, 'ALGO-V1', p.created_at
 FROM plannings p
@@ -343,7 +336,6 @@ FROM plannings p
 WHERE p.request_code = 'SEED-REQ-001'
 ON CONFLICT (planning_id, run_number) DO NOTHING;
 
--- Query mengambil run pemrosesan terakhir untuk setiap planning
 WITH ranked_runs AS (
     SELECT 
         r.run_id,
@@ -374,32 +366,27 @@ ORDER BY planning_id ASC;
 
 
 -- ==========================================
--- Task 9: Usulan Indeks & Analisis
+-- Task 9: Usulan Indeks
 -- ==========================================
 
--- 1. Indeks created_at: Mempercepat query riwayat (ORDER BY created_at DESC)
 CREATE INDEX IF NOT EXISTS idx_plannings_created_at_desc 
 ON plannings (created_at DESC);
 
--- 2. Indeks status: Mempercepat pencarian / filtering status transaksi
 CREATE INDEX IF NOT EXISTS idx_plannings_status 
 ON plannings (status);
 
--- 3. Indeks foreign key planning_id: Mempercepat relasi JOIN dan CASCADE delete
 CREATE INDEX IF NOT EXISTS idx_planning_slots_planning_id 
 ON planning_slots (planning_id);
 
--- Catatan: Kolom request_code sudah otomatis diindeks oleh UNIQUE constraint (uq_plannings_request_code).
-
 
 -- ==========================================
--- Task 10: Strategi Migrasi Aman (Wide -> Rows)
+-- Task 10: Strategi Migrasi Aman
 -- ==========================================
 
 -- Langkah 1: Validasi data tabel lama
 -- SELECT COUNT(*) FROM old_plannings WHERE slot1_qty < 0 OR slot2_qty < 0;
 
--- Langkah 2: Pastikan tabel baru (planning_slots) sudah siap dengan constraint lengkap.
+-- Langkah 2: Pastikan tabel tujuan (planning_slots) sudah siap
 
 -- Langkah 3-6: Unpivot kolom lama menjadi baris di tabel baru
 /*
@@ -447,5 +434,5 @@ LEFT JOIN planning_slots ps ON p.planning_id = ps.planning_id AND gs.order_num =
 WHERE ps.id IS NULL;
 */
 
--- Langkah 10: Hapus kolom lama setelah verifikasi aplikasi selesai
+-- Langkah 10: Hapus kolom lama setelah verifikasi selesai
 -- ALTER TABLE old_plannings DROP COLUMN slot1_qty, DROP COLUMN slot2_qty, ...;
