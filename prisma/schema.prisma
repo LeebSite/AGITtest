@@ -1,0 +1,40 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Planning {
+  planningId     Int            @id @default(autoincrement()) @map("planning_id")
+  requestCode    String         @unique @map("request_code")
+  candidateToken String         @map("candidate_token")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  status         String         @default("SUCCESS") @map("status")
+  originalTotal  Int            @default(0) @map("original_total")
+  balancedTotal  Int            @default(0) @map("balanced_total")
+  slots          PlanningSlot[]
+
+  @@map("plannings")
+  @@index([requestCode])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model PlanningSlot {
+  id               Int      @id @default(autoincrement()) @map("id")
+  planningId       Int      @map("planning_id")
+  slotOrder        Int      @map("slot_order")
+  slotName         String   @map("slot_name")
+  originalQuantity Int      @map("original_quantity")
+  balancedQuantity Int      @map("balanced_quantity")
+  isActive         Boolean  @default(true) @map("is_active")
+
+  planning         Planning @relation(fields: [planningId], references: [planningId], onDelete: Cascade)
+
+  @@map("planning_slots")
+  @@index([planningId])
+  @@unique([planningId, slotOrder])
+}
