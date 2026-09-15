@@ -1,0 +1,18 @@
+{
+  "name": "agittest",
+  "version": "1.0.0",
+  "description": "AGIT Software Engineer Coding Assessment - Slot Balancing System",
+  "type": "module",
+  "main": "src/core/balancer.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "balancing",
+    "slot-balancing",
+    "assessment"
+  ],
+  "author": "",
+  "license": "ISC"
+}
